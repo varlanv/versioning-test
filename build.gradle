@@ -19,12 +19,17 @@ ext {
     groovyVersion = '3.0.7'
 }
 
+versionIncrement {
+    repositoryAccount = 'varlanv'
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
     implementation 'org.apache.commons:commons-lang3:3.8.1'
+    implementation 'org.codehaus.groovy:groovy-all:3.0.6'
 }
 
 test {
@@ -42,12 +47,20 @@ publishing {
     }
     repositories {
         maven {
+            def usr = project.findProperty("gpr.user") ?: System.getenv("GH_USERNAME")
+            def pwd = project.findProperty("gpr.key") ?: System.getenv("GH_TOKEN")
+            logger.lifecycle(usr)
+            logger.lifecycle(pwd)
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/")
+            url = uri("https://maven.pkg.github.com/varlanv/versioning-test")
             credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GH_USERNAME")
-                password = project.findProperty("gpr.key") ?: System.getenv("GH_TOKEN")
+                username = usr
+                password = pwd
             }
         }
     }
+}
+
+project.afterEvaluate {
+    1==1
 }
