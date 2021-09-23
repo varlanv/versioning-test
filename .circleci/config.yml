@@ -1,0 +1,140 @@
+version: 2.1
+
+executors:
+  machine-executor:
+    working_directory: ~/app
+    machine:
+      image: ubuntu-2004:202008-01
+
+commands:
+  checkout-code:
+    steps:
+      - checkout:
+          path: $CIRCLE_PROJECT_REPONAME
+  build:
+    description: "Build project"
+    steps:
+      - run:
+          command: |
+            cd ~/project
+            chmod +x gradlew
+            ./gradlew build -x test
+  increment-jar-version:
+    description: "Increment jar version"
+    parameters:
+      gradleTaskName:
+        type: string
+      incrementType:
+        type: string
+    steps:
+      - checkout:
+          path: $CIRCLE_PROJECT_REPONAME
+      - run:
+          command: |
+            sudo apt update && sudo apt install -y git
+            git config --global user.email "circleci@sema4.com" && git config --global user.name "circleci"
+            export PREV_VERSION=$(cat gradle.properties | grep build.version= | cut -c14)
+            chmod +x gradlew
+            ./gradlew << parameters.gradleTaskName >> -i
+            export CURRENT_VERSION=$(cat gradle.properties | grep build.version= | cut -c14)
+            git add gradle.properties
+            git commit -m "CI: << parameters.incrementType >> version increment. $PREV_VERSION version is published. [skip ci]"
+            git push -q https://${GH_TOKEN}@github.com/sema4genomics/s4-workbench-entities.git fix/LPWB-000
+  run-test:
+    description: "Running test"
+    steps:
+      - run:
+          command: |
+            cd ~/project
+            chmod +x gradlew
+            ./gradlew test
+  setup-integration-tests:
+    steps:
+      - run:
+          name: Setup integration tests
+          command: |
+            apt update && apt install git curl -y
+            git config --global user.email "circleci@sema4.com" && git config --global user.name "circleci"
+            git clone https://$GH_TOKEN@github.com/sema4genomics/s4-workbench-schema.git ../s4-workbench-schema
+            ../s4-workbench-schema/gradlew -p ../s4-workbench-schema setupLocalItDatabase -i
+  publish:
+    description: "Publish jar to Github Packages"
+    steps:
+      - run:
+          command: |
+            cd ~/project
+            chmod +x gradlew
+            ./gradlew publish
+
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:11.0.3-jdk-stretch
+    steps:
+      - checkout
+      - build
+  test:
+    executor: machine-executor
+    steps:
+      - checkout
+      #      - setup-integration-tests
+      #      - integration-test
+      - store_artifacts:
+          path: build/reports/tests/test
+      - store_test_results:
+          path: build/test-results/test
+  increment-version:
+    docker:
+      - image: circleci/openjdk:11.0.3-jdk-stretch
+    steps:
+      - checkout
+      - when:
+          condition:
+            matches:
+              pattern: ".*fix/LPWB-000.*"
+              value: << pipeline.git.branch >>
+          steps:
+            - increment-jar-version:
+                gradleTaskName: "incrementPatchVersion"
+                incrementType: "Patch"
+      - when:
+          condition:
+            matches:
+              pattern: "release/*"
+              value: << pipeline.git.branch >>
+          steps:
+            - increment-jar-version:
+                gradleTaskName: "incrementMajorVersion"
+                incrementType: "Major"
+  publish:
+    docker:
+      - image: circleci/openjdk:11.0.3-jdk-stretch
+    steps:
+      - checkout
+      - publish
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore:
+                - develop
+      - test:
+          requires:
+            - build
+  increment-version-and-publish:
+    jobs:
+      - test:
+          filters:
+            branches:
+              only:
+                - fix/LPWB-000
+      - increment-version:
+          requires:
+            - test
+      - publish:
+          requires:
+            - increment-version

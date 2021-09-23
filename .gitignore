@@ -1,0 +1,56 @@
+HELP.md
+.gradle
+build/
+bin/
+logs/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### OS-related files ###
+.DS_Store
+**/node_modules
+.nyc_output
+.npm
+logs
+*.logs
+.idea
+*.iml
+jspm_packages
+**/.serverless
+.DS_Store
+**/jspm_packages
+
+# Serverless directories
+**/.serverless
+
+# Coverage directory used by tools like istanbul
+coverage
+# nyc test coverage
+.nyc_output

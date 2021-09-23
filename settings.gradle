@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        maven {
+            credentials({
+                username = System.getenv("GH_USERNAME") ?: getProperty("gpr.user")
+                password = System.getenv("GH_TOKEN") ?: getProperty("gpr.key")
+            })
+            url = uri("https://maven.pkg.github.com/sema4genomics/gradle-version-plugin")
+        }
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'versioning-test'
